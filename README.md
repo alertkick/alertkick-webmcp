@@ -78,6 +78,7 @@ registerPageTool({
 | `create_heartbeat` | no, confirmed | Create a heartbeat monitor for a cron job or scheduled task. |
 | `create_https_monitor` | no, confirmed | Create an uptime monitor for a website or API endpoint. |
 | `create_monitor` | no, confirmed | Create an uptime monitor. |
+| `create_mail_monitor` | no, confirmed | Create an email deliverability monitor for a domain. |
 | `create_tcp_monitor` | no, confirmed | Create a TCP monitor that opens a connection to host:port on an interval and alerts when the port stops accepting connections (databases, mail servers, game servers, anything not speaking HTTP). |
 | `delete_heartbeat` | no, confirmed | Permanently delete a heartbeat monitor. |
 | `delete_monitor` | no, confirmed | Permanently delete a monitor and stop all its checks. |

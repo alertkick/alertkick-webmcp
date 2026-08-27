@@ -149,6 +149,23 @@ export const adapters = {
     if (int(i.failure_threshold, 0)) body.failure_threshold = i.failure_threshold;
     return createMonitor(body);
   },
+  create_mail_monitor: (i) => {
+    const policy = str(i.require_dmarc_policy).toLowerCase();
+    if (policy && !['none', 'quarantine', 'reject'].includes(policy)) {
+      throw new Error('require_dmarc_policy must be none, quarantine or reject');
+    }
+    let domain = req('domain', i.domain).trim().toLowerCase().replace(/^https?:\/\//, '');
+    domain = domain.split('/')[0].replace(/\.$/, '');
+    const body = {
+      display_name: req('display_name', i.display_name),
+      monitor_type: 'mail',
+      url: domain,
+      timeout_seconds: 30,
+      check_interval_seconds: int(i.check_interval_seconds, 3600),
+    };
+    if (policy) body.mail_require_dmarc_policy = policy;
+    return createMonitor(body);
+  },
   pause_monitor: (i) => ({ method: 'POST', path: uuidPath('/monitors', i) + '/pause', body: {} }),
   resume_monitor: (i) => ({ method: 'POST', path: uuidPath('/monitors', i) + '/resume', body: {} }),
   delete_monitor: (i) => ({ method: 'DELETE', path: uuidPath('/monitors', i) }),
