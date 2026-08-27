@@ -1,3 +1,4 @@
+/* global globalThis */
 // @alertkick/webmcp - register AlertKick's tool surface with WebMCP.
 //
 //   import { registerAlertKickTools, unregisterAlertKickTools } from '@alertkick/webmcp';

@@ -1,3 +1,4 @@
+/* global globalThis */
 // Thin, defensive wrapper over the WebMCP entry point.
 //
 // The spec moved the attribute during 2026 (navigator.modelContext first,
