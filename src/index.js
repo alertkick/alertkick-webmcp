@@ -12,7 +12,7 @@
 // which is generated from the AlertKick MCP server, so the in-page surface and
 // the hosted MCP connector always expose the same names and schemas.
 
-import manifest from '../manifest/tools.js';
+import manifest from './manifest/tools.js';
 import { adapters } from './adapters.js';
 import { registerTools, unregisterTools, getModelContext, isSupported } from './model-context.js';
 

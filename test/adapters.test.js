@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import manifest from '../manifest/tools.js';
+import manifest from '../src/manifest/tools.js';
 import { adapters } from '../src/adapters.js';
 import { createAlertKickTools } from '../src/index.js';
 import { registerTools, unregisterAll, registeredToolNames } from '../src/model-context.js';

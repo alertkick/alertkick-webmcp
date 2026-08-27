@@ -9,7 +9,7 @@ call those tools in the user's logged-in session instead of scraping the DOM.
 
 This package exposes AlertKick's existing MCP tool surface in the page:
 
-- **One manifest, two transports.** `manifest/tools.json` is generated from
+- **One manifest, two transports.** `src/manifest/tools.json` is generated from
   the AlertKick MCP server (`alertkick-mcp/cmd/webmcp-manifest`), so the
   in-page tools and the hosted connector at `mcp.alertkick.com` share names,
   descriptions and JSON Schemas. The browser only supplies `execute()`.

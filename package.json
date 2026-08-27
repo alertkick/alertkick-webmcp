@@ -7,10 +7,10 @@
   "exports": {
     ".": "./src/index.js",
     "./page-tool": "./src/page-tool.js",
-    "./manifest": "./manifest/tools.js",
-    "./manifest.json": "./manifest/tools.json"
+    "./manifest": "./src/manifest/tools.js",
+    "./manifest.json": "./src/manifest/tools.json"
   },
-  "files": ["src", "manifest", "README.md", "LICENSE"],
+  "files": ["src", "README.md", "LICENSE"],
   "scripts": {
     "test": "node --test test/*.test.js"
   },
