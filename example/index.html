@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>@alertkick/webmcp example</title>
+<style>body{font:15px/1.5 system-ui;max-width:48rem;margin:3rem auto;padding:0 1rem}pre{background:#f4f4f5;padding:1rem;overflow:auto}</style>
+<h1>@alertkick/webmcp example</h1>
+<p>Registers every AlertKick tool against a fake in-page API. Open Chrome with <code>chrome://flags/#enable-webmcp-testing</code> or the ChatGPT desktop browser, then ask for "open alerts" or "monitor https://example.com".</p>
+<p id="status"></p>
+<pre id="log"></pre>
+<script type="module">
+  import { registerAlertKickTools, isSupported, manifest } from '../src/index.js';
+  const log = (m) => (document.getElementById('log').textContent += m + '\n');
+  const fake = {
+    '/alerts': { alerts: [{ uuid: 'a1', title: 'example.com is down', status: 'open', severity: 'critical' }] },
+    '/monitors/all': { monitors: [{ uuid: 'm1', display_name: 'example.com', status: 'up' }] },
+  };
+  const names = registerAlertKickTools({
+    request: async ({ method, path, query, body }) => {
+      log(`${method} ${path} ${JSON.stringify(query || body || {})}`);
+      return fake[path] || { uuid: 'new-' + Math.random().toString(36).slice(2, 8), ok: true };
+    },
+    confirm: async ({ title, input }) => window.confirm(`${title}\n\n${JSON.stringify(input, null, 2)}`),
+  });
+  document.getElementById('status').textContent = isSupported()
+    ? `WebMCP supported: registered ${names.length}/${manifest.tools.length} tools.`
+    : 'This browser has no WebMCP support; nothing registered.';
+</script>

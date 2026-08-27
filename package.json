@@ -1,0 +1,22 @@
+{
+  "name": "@alertkick/webmcp",
+  "version": "0.1.0",
+  "description": "WebMCP (navigator.modelContext) tools for AlertKick: one manifest generated from the hosted MCP server, executed in the browser with the user's session.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./page-tool": "./src/page-tool.js",
+    "./manifest": "./manifest/tools.js",
+    "./manifest.json": "./manifest/tools.json"
+  },
+  "files": ["src", "manifest", "README.md", "LICENSE"],
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "repository": { "type": "git", "url": "https://github.com/alertkick/alertkick-webmcp.git" },
+  "homepage": "https://alertkick.com/docs/integrations/webmcp/",
+  "keywords": ["webmcp", "modelcontext", "mcp", "monitoring", "alertkick", "agents"],
+  "license": "MIT",
+  "engines": { "node": ">=20" }
+}

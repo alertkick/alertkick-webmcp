@@ -1,0 +1,1054 @@
+{
+  "$schema": "https://alertkick.com/schemas/webmcp-manifest-v1.json",
+  "generator": "alertkick-mcp/cmd/webmcp-manifest",
+  "version": "v0.1.0-7-g0a38ffc",
+  "tools": [
+    {
+      "name": "acknowledge_alert",
+      "title": "Acknowledge alerts",
+      "description": "Acknowledge an open alert. This signals that someone is aware of and working on the issue.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "alert UUID to acknowledge (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "approve_change",
+      "title": "Approve change request",
+      "description": "Approve a requested change, moving it to \"approved\" status so it can be started.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "change UUID to approve (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "complete_change",
+      "title": "Complete change request",
+      "description": "Complete a started change. Side effect: this re-locks the change's servers (closes the maintenance window) and starts an automatic FIM verification by the SRE agent. Poll get_change to see the verification_status.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "change UUID to complete (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_change",
+      "title": "Create change request",
+      "description": "Create a new change request in \"requested\" status with a title, maintenance window, and target servers. host_uuids are AlertKick host UUIDs, discoverable via the list_servers tool. The change must then be approved, started, and completed via the corresponding tools.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "description": "longer description of what the change does",
+            "type": "string"
+          },
+          "host_uuids": {
+            "description": "AlertKick host UUIDs of the servers the change applies to, at least one (required)",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "null",
+              "array"
+            ]
+          },
+          "title": {
+            "description": "short title for the change (required)",
+            "type": "string"
+          },
+          "window_end": {
+            "description": "maintenance window end time in RFC3339 format, e.g. 2026-07-21T23:00:00Z (required)",
+            "type": "string"
+          },
+          "window_start": {
+            "description": "maintenance window start time in RFC3339 format, e.g. 2026-07-21T22:00:00Z (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "window_start",
+          "window_end",
+          "host_uuids"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_dns_monitor",
+      "title": "Create DNS monitor",
+      "description": "Create a DNS monitor that resolves a record on an interval and alerts on resolution failure — or, when expected_value is set, whenever the answer no longer matches it (hijack/misconfiguration detection). Answer changes are tracked per poller location either way.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "check_interval_seconds": {
+            "description": "seconds between checks (default 300)",
+            "type": "integer"
+          },
+          "display_name": {
+            "description": "human-readable name for the monitor (required)",
+            "type": "string"
+          },
+          "expected_value": {
+            "description": "alert when the record no longer resolves to this value (optional; without it the check alerts only on resolution failure, and AlertKick still tracks answer changes per location)",
+            "type": "string"
+          },
+          "hostname": {
+            "description": "DNS name to resolve, e.g. www.example.com (required)",
+            "type": "string"
+          },
+          "record_type": {
+            "description": "record type: A, AAAA, CNAME, MX, TXT or NS (default A)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "hostname"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_domain_expiry_monitor",
+      "title": "Create domain-expiry monitor",
+      "description": "Create a domain registration expiry monitor. AlertKick checks the domain's RDAP record daily and alerts ahead of the expiry date; it also surfaces registrar, transfer-lock status, nameservers and mail posture (MX/SPF/DMARC), and alerts if the transfer lock is removed.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "display_name": {
+            "description": "human-readable name for the monitor (required)",
+            "type": "string"
+          },
+          "domain": {
+            "description": "registrable domain to watch, e.g. example.com (required)",
+            "type": "string"
+          },
+          "domain_expiry_alert_days": {
+            "description": "days before registration expiry to alert (default 30, max 365)",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "display_name",
+          "domain"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_heartbeat",
+      "title": "Create heartbeat",
+      "description": "Create a heartbeat monitor for a cron job or scheduled task. Idempotent by slug: if a heartbeat with this slug exists it is pinged instead of duplicated. Creation records a first ping and arms monitoring immediately, so the next real ping is expected within interval_seconds + grace_seconds. Returns the ping command to embed in the job.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "grace_seconds": {
+            "description": "grace period in seconds before a late ping counts as missed (default 3600)",
+            "type": "integer"
+          },
+          "interval_seconds": {
+            "description": "expected ping interval in seconds (default 86400 = daily)",
+            "type": "integer"
+          },
+          "name": {
+            "description": "display name (defaults to the slug)",
+            "type": "string"
+          },
+          "slug": {
+            "description": "unique identifier for the heartbeat, e.g. 'nightly-backup' (required; letters, digits, dot, dash, underscore, max 64 chars)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_https_monitor",
+      "title": "Create HTTPS/uptime monitor",
+      "description": "Create an uptime monitor for a website or API endpoint. Checks the URL on an interval from AlertKick's poller locations and alerts on failures; for https URLs it also monitors the TLS certificate and alerts before it expires. Alerts route to the account's default escalation policy.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "check_interval_seconds": {
+            "description": "seconds between checks (default 300)",
+            "type": "integer"
+          },
+          "display_name": {
+            "description": "human-readable name for the monitor (required)",
+            "type": "string"
+          },
+          "expected_response_contains": {
+            "description": "alert unless the response body contains this string",
+            "type": "string"
+          },
+          "expected_status_code": {
+            "description": "expected HTTP status (default 200)",
+            "type": "integer"
+          },
+          "failure_threshold": {
+            "description": "consecutive failures before alerting (default 3)",
+            "type": "integer"
+          },
+          "monitor_ssl_cert": {
+            "description": "also alert before the TLS certificate expires (default true for https URLs)",
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "response_time_alert_ms": {
+            "description": "alert when successful checks are slower than this many milliseconds (0 = disabled)",
+            "type": "integer"
+          },
+          "ssl_cert_expiry_alert_days": {
+            "description": "days before certificate expiry to alert (default 14)",
+            "type": "integer"
+          },
+          "url": {
+            "description": "full URL to check, e.g. https://example.com/health (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "url"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_monitor",
+      "title": "Create monitor",
+      "description": "Create an uptime monitor. Types: 'http'/'api' check a URL (optionally with ssl_cert_monitoring for HTTPS certificate expiry), 'dns' checks record resolution, 'tcp' checks a port, 'domain' checks domain registration expiry. Only display_name, monitor_type and url are required; sensible defaults cover the rest. Alerts route to the account's default escalation policy.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "check_interval_seconds": {
+            "description": "seconds between checks (default 300; plans may enforce a higher floor)",
+            "type": "integer"
+          },
+          "display_name": {
+            "description": "human-readable name for the monitor (required)",
+            "type": "string"
+          },
+          "dns_record_type": {
+            "description": "DNS record type for dns monitors: A, AAAA, CNAME, MX, TXT, NS",
+            "type": "string"
+          },
+          "domain_expiry_alert_days": {
+            "description": "for domain monitors: alert this many days before the registration expires (default 30, max 365)",
+            "type": "integer"
+          },
+          "expected_dns_host": {
+            "description": "expected resolved value for dns monitors",
+            "type": "string"
+          },
+          "expected_response_contains": {
+            "description": "alert unless the response body contains this string (http/api only)",
+            "type": "string"
+          },
+          "expected_status_code": {
+            "description": "expected HTTP status for http/api monitors (default 200)",
+            "type": "integer"
+          },
+          "failure_threshold": {
+            "description": "consecutive failures before alerting (default 3)",
+            "type": "integer"
+          },
+          "http_method": {
+            "description": "HTTP method for http/api monitors (default GET)",
+            "type": "string"
+          },
+          "monitor_type": {
+            "description": "one of: http, api, dns, tcp, domain (required). Use 'domain' for domain registration expiry, 'http' with ssl_cert_monitoring for HTTPS certificate expiry",
+            "type": "string"
+          },
+          "response_time_alert_ms": {
+            "description": "alert when successful checks are slower than this many milliseconds (http/api only; 0 = disabled)",
+            "type": "integer"
+          },
+          "ssl_cert_expiry_alert_days": {
+            "description": "alert this many days before the TLS certificate expires (default 14)",
+            "type": "integer"
+          },
+          "ssl_cert_monitoring": {
+            "description": "also monitor the TLS certificate on https URLs",
+            "type": "boolean"
+          },
+          "tcp_port": {
+            "description": "port to connect to (required for tcp monitors)",
+            "type": "integer"
+          },
+          "timeout_seconds": {
+            "description": "per-check timeout in seconds (default 30)",
+            "type": "integer"
+          },
+          "url": {
+            "description": "target to check: full URL for http/api, hostname for dns/tcp/domain (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "monitor_type",
+          "url"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "create_tcp_monitor",
+      "title": "Create TCP port monitor",
+      "description": "Create a TCP monitor that opens a connection to host:port on an interval and alerts when the port stops accepting connections (databases, mail servers, game servers, anything not speaking HTTP).",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "check_interval_seconds": {
+            "description": "seconds between checks (default 300)",
+            "type": "integer"
+          },
+          "display_name": {
+            "description": "human-readable name for the monitor (required)",
+            "type": "string"
+          },
+          "failure_threshold": {
+            "description": "consecutive failures before alerting (default 3)",
+            "type": "integer"
+          },
+          "host": {
+            "description": "hostname or IP to connect to (required)",
+            "type": "string"
+          },
+          "port": {
+            "description": "TCP port to connect to (required)",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "display_name",
+          "host",
+          "port"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "delete_heartbeat",
+      "title": "Delete heartbeat",
+      "description": "Permanently delete a heartbeat monitor. Its ping URL stops working.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "heartbeat UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "delete_monitor",
+      "title": "Delete monitor",
+      "description": "Permanently delete a monitor and stop all its checks.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "monitor UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "disable_heartbeat",
+      "title": "Disable heartbeat",
+      "description": "Disable a heartbeat so missed pings stop alerting (e.g. while the job is intentionally stopped).",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "heartbeat UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "enable_heartbeat",
+      "title": "Enable heartbeat",
+      "description": "Enable a disabled heartbeat so missed pings alert again.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "heartbeat UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_alert",
+      "title": "Get alert",
+      "description": "Get detailed information about a specific alert including its full history and associated server.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "alert UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_change",
+      "title": "Get change request",
+      "description": "Get detailed information about a specific change request, including its status, verification status (pending, running, clean, changes_detected, failed), maintenance window, and affected servers.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "change UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_heartbeat",
+      "title": "Get heartbeat",
+      "description": "Get a heartbeat's full configuration and state, including its ping key and current health.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "heartbeat UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_incident",
+      "title": "Get incident",
+      "description": "Get detailed information about a specific incident including its full timeline of updates.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "incident UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_monitor",
+      "title": "Get monitor",
+      "description": "Get detailed information about a specific monitor including its configuration, check history, and assigned pollers.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "monitor UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_security_event_stats",
+      "title": "Security event stats",
+      "description": "Get aggregate statistics for security events: counts by priority, rule, host, and AI verdict over a time range.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "duration": {
+            "description": "time range for stats, e.g. 1h, 24h, 7d (default 24h)",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_server",
+      "title": "Get server",
+      "description": "Get detailed information about a specific server including checks, host info, uptime, and agent details.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "server UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_server_containers",
+      "title": "Get server containers",
+      "description": "Get Docker containers running on a specific server, including status, CPU, memory, and network stats.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "server UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_alerts",
+      "title": "List alerts",
+      "description": "List alerts with optional status filter. Returns alert name, status, severity, server, and timestamps.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "description": "max results to return (default 50, max 200)",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "result offset for pagination",
+            "type": "integer"
+          },
+          "status": {
+            "description": "filter by status: open, acknowledged, or resolved",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_changes",
+      "title": "List change requests",
+      "description": "List change requests with optional status and host filters. Returns change title, status, verification status, maintenance window, and affected servers.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "host_uuid": {
+            "description": "filter by host UUID",
+            "type": "string"
+          },
+          "limit": {
+            "description": "max results to return (default 50, max 200)",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "result offset for pagination",
+            "type": "integer"
+          },
+          "status": {
+            "description": "filter by status: requested, approved, started, or completed",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_heartbeats",
+      "title": "List heartbeats",
+      "description": "List all heartbeat monitors. Heartbeats track cron jobs and scheduled tasks by expecting periodic pings.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "description": "max results to return (default 50, max 200)",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "result offset for pagination",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_incidents",
+      "title": "List incidents",
+      "description": "List incidents with optional status and severity filters. Returns incident title, status, severity, and timeline.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "description": "max results to return (default 50, max 200)",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "result offset for pagination",
+            "type": "integer"
+          },
+          "severity": {
+            "description": "filter by severity: minor, major, critical",
+            "type": "string"
+          },
+          "status": {
+            "description": "filter by status: open, investigating, identified, monitoring, resolved",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_monitors",
+      "title": "List monitors",
+      "description": "List all HTTP/TCP/DNS/SSL monitors with their current status, response times, and check intervals.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "description": "max results to return (default 50, max 200)",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "result offset for pagination",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_security_events",
+      "title": "List security events",
+      "description": "List security events (eBPF detections) with optional filters for priority, rule, host, AI verdict, and time range.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "agent_type": {
+            "description": "filter by agent type",
+            "type": "string"
+          },
+          "duration": {
+            "description": "time range, e.g. 1h, 24h, 7d (default 24h)",
+            "type": "string"
+          },
+          "event_class": {
+            "description": "filter by event class",
+            "type": "string"
+          },
+          "host_uuid": {
+            "description": "filter by server UUID",
+            "type": "string"
+          },
+          "limit": {
+            "description": "max results to return (default 50, max 500)",
+            "type": "integer"
+          },
+          "llm_verdict": {
+            "description": "filter by AI verdict: malicious, suspicious, benign, informational",
+            "type": "string"
+          },
+          "offset": {
+            "description": "result offset for pagination",
+            "type": "integer"
+          },
+          "priority": {
+            "description": "filter by priority: emergency, alert, critical, error, warning, notice, informational, debug",
+            "type": "string"
+          },
+          "rule": {
+            "description": "filter by rule name",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_servers",
+      "title": "List servers",
+      "description": "List all monitored servers with their status, hostname, IP addresses, OS info, and agent version. Supports pagination.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "description": "max results to return (default 50, max 200)",
+            "type": "integer"
+          },
+          "offset": {
+            "description": "result offset for pagination",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "pause_monitor",
+      "title": "Pause monitor",
+      "description": "Pause a monitor: checks stop and no alerts fire until it is resumed.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "monitor UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "resolve_alert",
+      "title": "Resolve alerts",
+      "description": "Resolve an alert, marking the issue as fixed. The alert will re-open if the check fails again.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "alert UUID to resolve (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "resume_monitor",
+      "title": "Resume monitor",
+      "description": "Resume a paused monitor so checks and alerting start again.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "monitor UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "start_change",
+      "title": "Start change request",
+      "description": "Start an approved change. Side effect: this opens a maintenance window (SSH unlock) on the change's servers until the change's window end time.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "change UUID to start (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "verify_change",
+      "title": "Verify change request",
+      "description": "Re-run the FIM verification for a completed change. Returns the verification result including per-host changed-file lists.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "change UUID to verify (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": true,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}
