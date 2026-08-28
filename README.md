@@ -3,9 +3,10 @@
 WebMCP tools for [AlertKick](https://alertkick.com) website and server monitoring.
 
 [WebMCP](https://webmachinelearning.github.io/webmcp/) lets a page register
-tools with the browser's agent (`navigator.modelContext`). An agent such as
-the ChatGPT desktop browser or Chrome with `#enable-webmcp-testing` can then
-call those tools in the user's logged-in session instead of scraping the DOM.
+tools with the browser's agent (`navigator.modelContext`, also exposed as
+`document.modelContext`). An agent such as the ChatGPT desktop browser or
+Chrome 151 can then call those tools in the user's logged-in session instead
+of scraping the DOM.
 
 This package exposes AlertKick's existing MCP tool surface in the page:
 
@@ -114,10 +115,27 @@ npm test                    # asserts every manifest tool has an adapter
 
 ## Testing in a browser
 
-- Chrome 146+: enable `chrome://flags/#enable-webmcp-testing`, load the
-  page, then in DevTools: `await navigator.modelContextTesting.getTools()` and
-  `await navigator.modelContextTesting.executeTool('list_alerts', { status: 'open' })`.
-- ChatGPT desktop app: open the page in the built-in browser and ask.
+- **Chrome 151**: no flags needed. Load the page, then in DevTools:
+
+  ```js
+  await navigator.modelContextTesting.listTools();
+  await navigator.modelContextTesting.executeTool(
+    'list_alerts',
+    JSON.stringify({ status: 'open' }),
+  );
+  ```
+
+  Two things that cost time: the testing interface is `listTools()`, not
+  `getTools()` (`getTools()` exists, but on `navigator.modelContext`), and
+  `executeTool` takes its arguments as a **JSON string** - passing an object
+  fails with "Failed to parse input arguments". Chrome does not validate
+  against `inputSchema`, so wrong argument names reach your endpoint.
+
+- Chrome 146 to 150: may need `chrome://flags/#enable-webmcp-testing`. Not
+  retested since 151 shipped it on by default.
+- **ChatGPT desktop app**: open the page in the built-in browser and ask. It
+  will use a page tool when you ask it to; left to itself, with a shell or an
+  ordinary form available, it tends to use those instead.
 
 `example/index.html` is a self-contained page that registers the full tool
 set against a fake API so you can try the flow without an account.
