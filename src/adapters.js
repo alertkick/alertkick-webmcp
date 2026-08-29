@@ -20,6 +20,16 @@ const req = (name, v) => {
 };
 const uuidPath = (prefix, i) => `${prefix}/${encodeURIComponent(req('uuid', i.uuid))}`;
 
+// Poller location keys. The manifest advertises `locations` on every
+// create_*_monitor tool (alertkick-mcp v0.2.6); without this the adapters
+// would build the body field by field and drop it silently, which is exactly
+// how the API's own `limit` and `status` params went unnoticed.
+const locs = (v) => {
+  if (!Array.isArray(v)) return undefined;
+  const out = v.map((x) => (typeof x === 'string' ? x.trim() : '')).filter(Boolean);
+  return out.length ? out : undefined;
+};
+
 export const adapters = {
   // Servers
   list_servers: (i) => ({ method: 'GET', path: '/hosts', query: paging(i), link: () => '/servers' }),
@@ -61,6 +71,7 @@ export const adapters = {
 
   // Monitors
   list_monitors: (i) => ({ method: 'GET', path: '/monitors/all', query: paging(i), link: () => '/monitors' }),
+  list_poller_locations: () => ({ method: 'GET', path: '/poller-locations/all' }),
   get_monitor: (i) => ({ method: 'GET', path: uuidPath('/monitors', i), link: () => `/monitors/${i.uuid}` }),
   create_monitor: (i) => {
     const type = req('monitor_type', i.monitor_type);
@@ -85,7 +96,7 @@ export const adapters = {
     if (int(i.domain_expiry_alert_days, 0)) body.domain_expiry_alert_days = i.domain_expiry_alert_days;
     if (int(i.response_time_alert_ms, 0)) body.response_time_alert_ms = i.response_time_alert_ms;
     if (int(i.failure_threshold, 0)) body.failure_threshold = i.failure_threshold;
-    return createMonitor(body);
+    return createMonitor(body, i);
   },
   create_https_monitor: (i) => {
     const url = req('url', i.url);
@@ -104,7 +115,7 @@ export const adapters = {
     if (int(i.ssl_cert_expiry_alert_days, 0)) body.ssl_cert_expiry_alert_days = i.ssl_cert_expiry_alert_days;
     if (int(i.response_time_alert_ms, 0)) body.response_time_alert_ms = i.response_time_alert_ms;
     if (int(i.failure_threshold, 0)) body.failure_threshold = i.failure_threshold;
-    return createMonitor(body);
+    return createMonitor(body, i);
   },
   create_dns_monitor: (i) => {
     const recordType = str(i.record_type, 'A').toUpperCase();
@@ -120,7 +131,7 @@ export const adapters = {
       check_interval_seconds: int(i.check_interval_seconds, 300),
     };
     if (str(i.expected_value)) body.expected_dns_host = i.expected_value;
-    return createMonitor(body);
+    return createMonitor(body, i);
   },
   create_domain_expiry_monitor: (i) => {
     let domain = req('domain', i.domain).trim().toLowerCase().replace(/^https?:\/\//, '');
@@ -133,7 +144,7 @@ export const adapters = {
       check_interval_seconds: 86400,
     };
     if (int(i.domain_expiry_alert_days, 0)) body.domain_expiry_alert_days = i.domain_expiry_alert_days;
-    return createMonitor(body);
+    return createMonitor(body, i);
   },
   create_tcp_monitor: (i) => {
     const port = Number(req('port', i.port));
@@ -147,7 +158,7 @@ export const adapters = {
       check_interval_seconds: int(i.check_interval_seconds, 300),
     };
     if (int(i.failure_threshold, 0)) body.failure_threshold = i.failure_threshold;
-    return createMonitor(body);
+    return createMonitor(body, i);
   },
   create_mail_monitor: (i) => {
     const policy = str(i.require_dmarc_policy).toLowerCase();
@@ -164,7 +175,7 @@ export const adapters = {
       check_interval_seconds: int(i.check_interval_seconds, 3600),
     };
     if (policy) body.mail_require_dmarc_policy = policy;
-    return createMonitor(body);
+    return createMonitor(body, i);
   },
   pause_monitor: (i) => ({ method: 'POST', path: uuidPath('/monitors', i) + '/pause', body: {} }),
   resume_monitor: (i) => ({ method: 'POST', path: uuidPath('/monitors', i) + '/resume', body: {} }),
@@ -235,7 +246,11 @@ export const adapters = {
   verify_change: (i) => ({ method: 'POST', path: uuidPath('/changes', i) + '/verify', body: {} }),
 };
 
-function createMonitor(body) {
+// Every create_*_monitor tool funnels through here, so `locations` is applied
+// once rather than in six adapters that could each forget it.
+function createMonitor(body, input) {
+  const l = locs(input && input.locations);
+  if (l) body.locations = l;
   return {
     method: 'POST',
     path: '/monitors/create',
