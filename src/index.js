@@ -111,13 +111,27 @@ async function execute({ tool, adapter, isRead, input, client, request, confirm 
 
 // Prefer the spec's requestUserInteraction so the agent is paused for the
 // duration of the dialog; fall back to calling the confirm directly.
+//
+// Some hosts expose the method but do not implement it: the ChatGPT desktop
+// app's Codex WebMCP shim rejects with "requestUserInteraction is not
+// supported" (seen 2026-09-01). Checking for a function is not enough, so try
+// it and fall back if it fails BEFORE the dialog ran. If the dialog did run,
+// the person's answer stands whatever the wrapper did afterwards; never ask
+// twice for the same write.
 async function askUser(client, fn) {
   if (client && typeof client.requestUserInteraction === 'function') {
+    let ran = false;
     let result = false;
-    await client.requestUserInteraction(async () => {
-      result = Boolean(await fn());
-    });
-    return result;
+    try {
+      await client.requestUserInteraction(async () => {
+        ran = true;
+        result = Boolean(await fn());
+      });
+      return result;
+    } catch (err) {
+      if (ran) return result;
+      console.warn('[webmcp] requestUserInteraction unavailable, confirming directly:', err && err.message ? err.message : err);
+    }
   }
   return Boolean(await fn());
 }

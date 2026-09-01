@@ -60,6 +60,30 @@ test('requestUserInteraction is used when the browser provides it', async () => 
   assert.equal(paused, 1);
 });
 
+test('a host whose requestUserInteraction rejects still gets a confirm (Codex shim)', async () => {
+  let confirms = 0;
+  const calls = [];
+  const [ack] = createAlertKickTools({
+    request: async (c) => (calls.push(c), {}),
+    confirm: async () => (confirms++, true),
+    only: ['acknowledge_alert'],
+  });
+  const shim = { requestUserInteraction: async () => { throw new Error('requestUserInteraction is not supported by the Codex WebMCP shim'); } };
+  const r = await ack.execute({ uuid: 'x' }, shim);
+  assert.equal(r.ok, true);
+  assert.equal(confirms, 1);
+  assert.equal(calls.length, 1);
+});
+
+test('a wrapper that fails after the dialog ran does not ask twice', async () => {
+  let confirms = 0;
+  const [ack] = createAlertKickTools({ request: async () => ({}), confirm: async () => (confirms++, false), only: ['acknowledge_alert'] });
+  const flaky = { requestUserInteraction: async (cb) => { await cb(); throw new Error('boom'); } };
+  const r = await ack.execute({ uuid: 'x' }, flaky);
+  assert.equal(r.cancelled, true);
+  assert.equal(confirms, 1);
+});
+
 test('adapter validation errors are returned, not thrown', async () => {
   const [tcp] = createAlertKickTools({ request: async () => ({}), confirm: async () => true, only: ['create_tcp_monitor'] });
   const r = await tcp.execute({ display_name: 'db', host: 'db.internal', port: 70000 });
