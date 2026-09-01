@@ -1,7 +1,7 @@
 {
   "$schema": "https://alertkick.com/schemas/webmcp-manifest-v1.json",
   "generator": "alertkick-mcp/cmd/webmcp-manifest",
-  "version": "v0.2.5-2-ga020781",
+  "version": "v0.2.5-4-g662552a",
   "tools": [
     {
       "name": "acknowledge_alert",
@@ -24,6 +24,34 @@
         "readOnlyHint": false,
         "destructiveHint": true,
         "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "add_server",
+      "title": "Add server",
+      "description": "Register a Linux server for agent-based monitoring (CPU, memory, disk, load, processes, Docker containers, SSH logins, eBPF security detections, file integrity) and return the one-line install command to run on it. Agent-based server monitoring is included in the 30-day trial and on paid plans; the Free plan has no server seats. On a plan without a free seat this tool returns an upgrade link instead of creating anything. The server shows as 'nocheckin' until the agent installs and reports in; use get_server_install_command to fetch the command again later (the link inside it expires after 24 hours).",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "escalation_policy_uuid": {
+            "description": "escalation policy to route this server's alerts to (optional; defaults to the workspace default policy)",
+            "type": "string"
+          },
+          "server_name": {
+            "description": "name for the server as it should appear in AlertKick, usually its hostname (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "server_name"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
         "openWorldHint": false
       }
     },
@@ -374,7 +402,7 @@
     {
       "name": "create_monitor",
       "title": "Create monitor",
-      "description": "Create an uptime monitor. Types: 'http'/'api' check a URL (optionally with ssl_cert_monitoring for HTTPS certificate expiry), 'dns' checks record resolution, 'tcp' checks a port, 'domain' checks domain registration expiry. Only display_name, monitor_type and url are required; sensible defaults cover the rest. Alerts route to the account's default escalation policy.",
+      "description": "Generic monitor creator; prefer the typed tools (create_https_monitor, create_dns_monitor, create_tcp_monitor, create_domain_expiry_monitor, create_mail_monitor) when one fits. Types: 'http'/'api' check a URL (optionally with ssl_cert_monitoring for HTTPS certificate expiry), 'dns' checks record resolution, 'tcp' checks a port, 'domain' checks domain registration expiry, 'mail' checks a domain's email posture (MX/SPF/DMARC/DKIM/blocklists). Only display_name, monitor_type and url are required (url is the hostname or domain for dns/tcp/domain/mail); sensible defaults cover the rest. Alerts route to the account's default escalation policy.",
       "inputSchema": {
         "additionalProperties": false,
         "properties": {
@@ -425,7 +453,7 @@
             ]
           },
           "monitor_type": {
-            "description": "one of: http, api, dns, tcp, domain (required). Use 'domain' for domain registration expiry, 'http' with ssl_cert_monitoring for HTTPS certificate expiry",
+            "description": "one of: http, api, dns, tcp, domain, mail (required). Use 'domain' for domain registration expiry, 'http' with ssl_cert_monitoring for HTTPS certificate expiry",
             "type": "string"
           },
           "response_time_alert_ms": {
@@ -449,7 +477,7 @@
             "type": "integer"
           },
           "url": {
-            "description": "target to check: full URL for http/api, hostname for dns/tcp/domain (required)",
+            "description": "target to check: full URL for http/api, hostname for dns/tcp, registrable domain for domain/mail (required)",
             "type": "string"
           }
         },
@@ -789,6 +817,30 @@
         "properties": {
           "uuid": {
             "description": "server UUID (required)",
+            "type": "string"
+          }
+        },
+        "required": [
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": true,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_server_install_command",
+      "title": "Get server install command",
+      "description": "Return the one-line agent install command for a server that was already added (add_server or the dashboard) but has no agent reporting yet, or whose agent needs reinstalling. The signed link inside the command is valid for 24 hours. Agent-based server monitoring is included in the 30-day trial and on paid plans; the Free plan has no server seats.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "uuid": {
+            "description": "server UUID from add_server or list_servers (required)",
             "type": "string"
           }
         },

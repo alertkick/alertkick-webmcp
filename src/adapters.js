@@ -32,6 +32,25 @@ const locs = (v) => {
 
 export const adapters = {
   // Servers
+  // add_server returns the host record; the server page carries the install
+  // command (one adapter = one request, so the second call the hosted MCP
+  // makes for the command is get_server_install_command here). A 402 from
+  // the API means the plan has no server seat: agent-based monitoring is a
+  // trial / paid-plan feature; the error text carries its message + upgrade_url.
+  add_server: (i) => ({
+    method: 'POST',
+    path: '/hosts/add',
+    body: {
+      server_name: req('server_name', str(i.server_name)),
+      ...(str(i.escalation_policy_uuid) && { escalation_policy_uuid: str(i.escalation_policy_uuid) }),
+    },
+    link: (d) => (d && d.uuid ? `/servers/${d.uuid}` : '/servers'),
+  }),
+  get_server_install_command: (i) => ({
+    method: 'GET',
+    path: uuidPath('/hosts', i) + '/agent-install-universal',
+    link: () => `/servers/${i.uuid}`,
+  }),
   list_servers: (i) => ({ method: 'GET', path: '/hosts', query: paging(i), link: () => '/servers' }),
   get_server: (i) => ({ method: 'GET', path: uuidPath('/hosts', i), link: () => `/servers/${i.uuid}` }),
   get_server_containers: (i) => ({ method: 'GET', path: uuidPath('/hosts', i) + '/containers' }),

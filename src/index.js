@@ -148,8 +148,14 @@ function describeError(err) {
   if (!err) return 'request failed';
   const r = err.response; // axios shape
   if (r) {
-    const msg = r.data && (r.data.error || r.data.message || r.data.detail);
-    return `${r.status}${msg ? ': ' + msg : ''}`;
+    // Prefer the human sentence over the machine code ("Agent-based server
+    // monitoring is not included in your current plan" beats
+    // "agent_limit_reached"), and hand over the upgrade link a plan-limit
+    // 402 carries so the agent can show the user where to go.
+    const d = r.data && typeof r.data === 'object' ? r.data : {};
+    const msg = d.message || d.detail || d.error;
+    const upgrade = r.status === 402 && typeof d.upgrade_url === 'string' && d.upgrade_url ? ` Upgrade: ${absolute(d.upgrade_url)}` : '';
+    return `${r.status}${msg ? ': ' + msg : ''}${upgrade}`;
   }
   return String(err.message || err);
 }

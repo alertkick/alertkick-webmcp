@@ -39,6 +39,43 @@ test('read tools never confirm, write tools always do', async () => {
   assert.match(w.ui_url, /\/monitors\/abc$/);
 });
 
+test('add_server posts the name and links to the new server page', async () => {
+  const calls = [];
+  const [add] = createAlertKickTools({
+    request: async (c) => (calls.push(c), { uuid: 'h1', agent_id: 'e1', status: 'nocheckin' }),
+    confirm: async () => true,
+    only: ['add_server'],
+  });
+  const r = await add.execute({ server_name: ' web-1 ' });
+  assert.equal(r.ok, true);
+  assert.deepEqual(calls.at(-1), { method: 'POST', path: '/hosts/add', query: undefined, body: { server_name: 'web-1' } });
+  assert.match(r.ui_url, /\/servers\/h1$/);
+
+  const missing = await add.execute({});
+  assert.equal(missing.ok, false);
+  assert.match(missing.error, /server_name is required/);
+  assert.equal(calls.length, 1);
+});
+
+test('a plan-limit 402 surfaces the message and upgrade link', async () => {
+  const err = Object.assign(new Error('Request failed with status code 402'), {
+    response: {
+      status: 402,
+      data: {
+        error: 'agent_limit_reached',
+        message: 'Agent-based server monitoring is not included in your current plan. It is included in the 30-day trial and on paid plans.',
+        upgrade_url: 'https://acme.alertkick.com/admin/plans',
+      },
+    },
+  });
+  const [add] = createAlertKickTools({ request: async () => { throw err; }, confirm: async () => true, only: ['add_server'] });
+  const r = await add.execute({ server_name: 'web-1' });
+  assert.equal(r.ok, false);
+  assert.match(r.error, /^402: Agent-based server monitoring is not included/);
+  assert.match(r.error, /Upgrade: https:\/\/acme\.alertkick\.com\/admin\/plans$/);
+  assert.doesNotMatch(r.error, /agent_limit_reached/);
+});
+
 test('declined confirmation cancels without calling the API', async () => {
   const calls = [];
   const [del] = createAlertKickTools({
