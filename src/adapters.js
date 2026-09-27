@@ -2,9 +2,11 @@
 // input to the exact /api/v1 request the hosted MCP server would make
 // (see alertkick-mcp/client/client.go), including the same defaults.
 //
-// Adapters return { method, path, query?, body?, link?(data) }. `link`
-// builds the relative UI URL for a created/fetched resource so the agent
-// can hand the user a doorway into the dashboard.
+// Adapters return { method, path, query?, body?, link?(data), transform?(data) }.
+// `link` builds the relative UI URL for a created/fetched resource so the
+// agent can hand the user a doorway into the dashboard. `transform` reshapes
+// the API response before the agent sees it (used to strip untrusted MCP
+// tool text from monitor documents; see sanitizeMonitorOutput).
 //
 // Nothing here decides *whether* a call is allowed: the API enforces
 // tenant scope, plan limits and roles on every request exactly as it does
@@ -89,9 +91,20 @@ export const adapters = {
   }),
 
   // Monitors
-  list_monitors: (i) => ({ method: 'GET', path: '/monitors/all', query: paging(i), link: () => '/monitors' }),
+  list_monitors: (i) => ({
+    method: 'GET',
+    path: '/monitors/all',
+    query: paging(i),
+    link: () => '/monitors',
+    transform: (d) => sanitizeMonitorOutput(d, true),
+  }),
   list_poller_locations: () => ({ method: 'GET', path: '/poller-locations/all' }),
-  get_monitor: (i) => ({ method: 'GET', path: uuidPath('/monitors', i), link: () => `/monitors/${i.uuid}` }),
+  get_monitor: (i) => ({
+    method: 'GET',
+    path: uuidPath('/monitors', i),
+    link: () => `/monitors/${i.uuid}`,
+    transform: (d) => sanitizeMonitorOutput(d, false),
+  }),
   create_monitor: (i) => {
     const type = req('monitor_type', i.monitor_type);
     if (type === 'tcp' && !int(i.tcp_port, 0)) throw new Error('tcp_port is required for tcp monitors');
@@ -196,6 +209,46 @@ export const adapters = {
     if (policy) body.mail_require_dmarc_policy = policy;
     return createMonitor(body, i);
   },
+  // Accepting a changed MCP tool surface is human-only (web app session) and
+  // deliberately has no tool, here or on the hosted connector.
+  create_mcp_monitor: (i) => {
+    const url = str(req('url', i.url));
+    if (!/^https?:\/\/[^/\s]+/i.test(url)) {
+      throw new Error('url must be the MCP endpoint as an http(s) URL, e.g. https://mcp.example.com/mcp');
+    }
+    const transport = str(i.transport, 'streamable-http').toLowerCase();
+    if (!['streamable-http', 'sse'].includes(transport)) throw new Error('transport must be streamable-http or sse');
+    const headers = i.headers && typeof i.headers === 'object' && !Array.isArray(i.headers) ? i.headers : {};
+    const hasHeaders = Object.keys(headers).length > 0;
+    const authMode = str(i.auth_mode, hasHeaders ? 'header' : 'none').toLowerCase();
+    if (authMode === 'header') {
+      if (!hasHeaders) throw new Error('auth_mode header needs at least one entry in headers (e.g. Authorization or X-API-Key)');
+    } else if (authMode === 'none' || authMode === 'oauth') {
+      if (hasHeaders) throw new Error('headers are only used with auth_mode header');
+    } else {
+      throw new Error('auth_mode must be none, header or oauth');
+    }
+    const driftPolicy = str(i.drift_policy, 'alert').toLowerCase();
+    if (!['alert', 'record'].includes(driftPolicy)) throw new Error('drift_policy must be alert or record');
+    if (Number.isInteger(i.max_tools) && i.max_tools < 0) throw new Error('max_tools must be 0 (no cap) or more');
+    const body = {
+      display_name: req('display_name', i.display_name),
+      monitor_type: 'mcp',
+      url,
+      timeout_seconds: int(i.timeout_seconds, 20),
+      check_interval_seconds: int(i.check_interval_seconds, 600),
+      mcp_transport: transport,
+      mcp_auth_mode: authMode,
+      mcp_drift_policy: driftPolicy,
+    };
+    if (authMode === 'header') body.mcp_headers = headers;
+    const expected = Array.isArray(i.expected_tools)
+      ? i.expected_tools.map((x) => (typeof x === 'string' ? x.trim() : '')).filter(Boolean)
+      : [];
+    if (expected.length) body.mcp_expected_tools = expected;
+    if (int(i.max_tools, 0)) body.mcp_max_tools = i.max_tools;
+    return createMonitor(body, i);
+  },
   pause_monitor: (i) => ({ method: 'POST', path: uuidPath('/monitors', i) + '/pause', body: {} }),
   resume_monitor: (i) => ({ method: 'POST', path: uuidPath('/monitors', i) + '/resume', body: {} }),
   delete_monitor: (i) => ({ method: 'DELETE', path: uuidPath('/monitors', i) }),
@@ -276,4 +329,77 @@ function createMonitor(body, input) {
     body,
     link: (d) => (d && d.uuid ? `/monitors/${d.uuid}` : '/monitors'),
   };
+}
+
+// MCP server monitors ("mcp" type) store the watched server's tool
+// descriptions, titles, server instructions and lint excerpts on the monitor
+// document. That text is untrusted (it is what a poisoned server uses to
+// steer an agent), so it never reaches the agent. Mirrors
+// alertkick-mcp/tools/monitor_mcp_output.go: an allowlist per tool and
+// finding, mcp_headers (encrypted secrets) removed, and a compact
+// mcp_summary added. compact=true (list_monitors) keeps only the summary.
+const MCP_TOOL_KEEP = ['name', 'desc_bytes', 'read_only', 'destructive'];
+const MCP_FINDING_KEEP = ['key', 'rule', 'tool', 'accepted'];
+
+export function sanitizeMonitorOutput(data, compact) {
+  if (!data || typeof data !== 'object') return data;
+  if (Array.isArray(data)) return data.map((m) => sanitizeMonitorDoc(m, compact));
+  if (Array.isArray(data.results)) return { ...data, results: data.results.map((m) => sanitizeMonitorDoc(m, compact)) };
+  return sanitizeMonitorDoc(data, compact);
+}
+
+function sanitizeMonitorDoc(m, compact) {
+  if (!m || typeof m !== 'object' || Array.isArray(m)) return m;
+  if (!('mcp_info' in m) && !('mcp_baseline' in m) && !('mcp_headers' in m) && m.monitor_type !== 'mcp') return m;
+  const { mcp_headers: _secrets, mcp_info: info, mcp_baseline: base, ...rest } = m;
+  const infoObj = info && typeof info === 'object' ? info : null;
+  const baseObj = base && typeof base === 'object' ? base : null;
+  const out = { ...rest, mcp_summary: mcpSummary(infoObj, baseObj) };
+  if (compact) return out;
+  if (info !== undefined) {
+    if (infoObj) {
+      const { instructions: _instructions, ...kept } = infoObj;
+      if ('tools' in kept) kept.tools = keepKeys(kept.tools, MCP_TOOL_KEEP);
+      if ('findings' in kept) kept.findings = keepKeys(kept.findings, MCP_FINDING_KEEP);
+      out.mcp_info = kept;
+    } else {
+      out.mcp_info = info;
+    }
+  }
+  if (base !== undefined) {
+    out.mcp_baseline = baseObj && 'tools' in baseObj ? { ...baseObj, tools: keepKeys(baseObj.tools, MCP_TOOL_KEEP) } : base;
+  }
+  return out;
+}
+
+function mcpSummary(info, base) {
+  const s = { has_baseline: Boolean(base) };
+  if (info) {
+    for (const k of ['server_name', 'server_version', 'protocol_version', 'tool_count', 'tools_listed', 'checked_at']) {
+      if (k in info) s[k] = info[k];
+    }
+    const drift = Array.isArray(info.drift) ? info.drift : [];
+    const findings = Array.isArray(info.findings) ? info.findings : [];
+    const open = findings.filter((f) => f && typeof f === 'object' && f.accepted !== true).length;
+    s.drift_count = drift.length;
+    s.findings_count = open;
+    if (Array.isArray(info.fails) && info.fails.length) s.fails = info.fails;
+    if (drift.length || open) {
+      s.review = 'A person must review and accept these changes in the AlertKick web app. Accepting is not available over MCP or with an API key.';
+    }
+  }
+  if (base) {
+    s.baseline_tool_count = Array.isArray(base.tools) ? base.tools.length : 0;
+    if ('accepted_at' in base) s.baseline_accepted_at = base.accepted_at;
+    if ('accepted_via' in base) s.baseline_accepted_via = base.accepted_via;
+  }
+  return s;
+}
+
+function keepKeys(v, keys) {
+  if (v === null || v === undefined) return v;
+  if (!Array.isArray(v)) return undefined;
+  return v
+    .filter((e) => e && typeof e === 'object' && !Array.isArray(e))
+    .map((e) => Object.fromEntries(keys.filter((k) => k in e).map((k) => [k, e[k]])));
 }

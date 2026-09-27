@@ -80,6 +80,7 @@ registerPageTool({
 | `create_https_monitor` | no, confirmed | Create an uptime monitor for a website or API endpoint. |
 | `create_monitor` | no, confirmed | Create an uptime monitor. |
 | `create_mail_monitor` | no, confirmed | Create an email deliverability monitor for a domain. |
+| `create_mcp_monitor` | no, confirmed | Create a monitor for a remote MCP server: handshake, tool-list drift against an approved baseline, tool-poisoning lint, OAuth discovery chain. Accepting tool changes is human-only, in the web app. |
 | `create_tcp_monitor` | no, confirmed | Create a TCP monitor that opens a connection to host:port on an interval and alerts when the port stops accepting connections (databases, mail servers, game servers, anything not speaking HTTP). |
 | `delete_heartbeat` | no, confirmed | Permanently delete a heartbeat monitor. |
 | `delete_monitor` | no, confirmed | Permanently delete a monitor and stop all its checks. |
@@ -89,7 +90,7 @@ registerPageTool({
 | `get_change` | yes | Get detailed information about a specific change request, including its status, verification status (pending, running, clean, changes_detected, failed), maintenance window, and affected servers. |
 | `get_heartbeat` | yes | Get a heartbeat's full configuration and state, including its ping key and current health. |
 | `get_incident` | yes | Get detailed information about a specific incident including its full timeline of updates. |
-| `get_monitor` | yes | Get detailed information about a specific monitor including its configuration, check history, and assigned pollers. |
+| `get_monitor` | yes | Get detailed information about a specific monitor including its configuration, check history, and assigned pollers. MCP server monitors omit tool descriptions, titles, server instructions and finding excerpts (untrusted text). |
 | `get_security_event_stats` | yes | Get aggregate statistics for security events: counts by priority, rule, host, and AI verdict over a time range. |
 | `get_server` | yes | Get detailed information about a specific server including checks, host info, uptime, and agent details. |
 | `get_server_containers` | yes | Get Docker containers running on a specific server, including status, CPU, memory, and network stats. |
@@ -97,7 +98,7 @@ registerPageTool({
 | `list_changes` | yes | List change requests with optional status and host filters. |
 | `list_heartbeats` | yes | List all heartbeat monitors. |
 | `list_incidents` | yes | List incidents with optional status and severity filters. |
-| `list_monitors` | yes | List all HTTP/TCP/DNS/SSL monitors with their current status, response times, and check intervals. |
+| `list_monitors` | yes | List all monitors (HTTP, API, TCP, DNS, SSL, domain, mail and MCP server) with their current status, response times, and check intervals. |
 | `list_security_events` | yes | List security events (eBPF detections) with optional filters for priority, rule, host, AI verdict, and time range. |
 | `list_servers` | yes | List all monitored servers with their status, hostname, IP addresses, OS info, and agent version. |
 | `pause_monitor` | no, confirmed | Pause a monitor: checks stop and no alerts fire until it is resumed. |

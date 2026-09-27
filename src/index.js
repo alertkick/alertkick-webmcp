@@ -97,7 +97,8 @@ async function execute({ tool, adapter, isRead, input, client, request, confirm 
   }
 
   try {
-    const data = await request({ method: call.method, path: call.path, query: call.query, body: call.body });
+    const raw = await request({ method: call.method, path: call.path, query: call.query, body: call.body });
+    const data = call.transform ? call.transform(raw) : raw;
     const out = { ok: true, data };
     if (call.link) {
       const href = call.link(data);
