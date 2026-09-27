@@ -1,6 +1,6 @@
 {
   "name": "@alertkick/webmcp",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "WebMCP (navigator.modelContext) tools for AlertKick: one manifest generated from the hosted MCP server, executed in the browser with the user's session.",
   "type": "module",
   "main": "./src/index.js",

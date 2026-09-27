@@ -1,7 +1,7 @@
 {
   "$schema": "https://alertkick.com/schemas/webmcp-manifest-v1.json",
   "generator": "alertkick-mcp/cmd/webmcp-manifest",
-  "version": "v0.2.9-1-g441b384",
+  "version": "v0.3.0",
   "tools": [
     {
       "name": "acknowledge_alert",
